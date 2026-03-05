@@ -188,7 +188,7 @@ def jn(cpu, registros, ram):
 
 
 instr_dict = {
-    # 0x00: (nop, 0),
+    0x00: (nop, 0),
     0x01: (halt, 1),
     # 0x02: (ret, 0),
     # 0x03: (iret, 0),
