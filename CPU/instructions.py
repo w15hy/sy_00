@@ -14,7 +14,25 @@ def mov3(cpu, registros, ram):
     pass
 
 
+def movi(cpu, registros, ram):
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    inm8_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    inm8 = int(inm8_bin, 2)
+
+    registros.set_reg(r1, inm8)
+
+    return False
+
+
 def halt(cpu, registros, ram):
+
+    registros.show()
+
     cpu.running = False
 
 
@@ -54,10 +72,6 @@ def lea(cpu, registros, ram):
     pass
 
 
-def movi(cpu, registros, ram):
-    pass
-
-
 def add(cpu, registros, ram):
     pass
 
@@ -67,7 +81,28 @@ def addi(cpu, registros, ram):
 
 
 def sub(cpu, registros, ram):
-    pass
+
+    # Extraer parámetros desde IR
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    val2 = registros.get_reg(r2)
+
+    # Resta cruda
+    result_raw = val1 - val2
+
+    # Actualizar flags
+    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="sub")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def mul(cpu, registros, ram):
@@ -132,7 +167,6 @@ def ror(cpu, registros, ram):
 
 def cmp(cpu, registros, ram):
 
-    # Extraer parámetros desde IR
     params = registros.IR_params()
 
     reg1_bin = params[0:8]
@@ -144,11 +178,11 @@ def cmp(cpu, registros, ram):
     val1 = registros.get_reg(r1)
     val2 = registros.get_reg(r2)
 
-    # Resta cruda
-    result_raw = val1 - val2
+    result = val1 - val2
 
-    # Actualizar flags
-    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="sub")
+    registros.flag_Z = result == 0
+    registros.flag_N = result < 0
+    registros.flag_C = val1 < val2
 
     return False
 
@@ -158,7 +192,10 @@ def test(cpu, registros, ram):
 
 
 def jmp(cpu, registros, ram):
-    pass
+
+    direccion = int(registros.IR_params(), 2)
+    registros.PC = direccion
+    return True
 
 
 def jz(cpu, registros, ram):
@@ -176,7 +213,13 @@ def jnz(cpu, registros, ram):
 
 
 def jc(cpu, registros, ram):
-    pass
+
+    if registros.flag_C:
+        direccion = int(registros.IR_params(), 2)
+        registros.PC = direccion
+        return True
+
+    return False
 
 
 def call(cpu, registros, ram):
@@ -184,11 +227,16 @@ def call(cpu, registros, ram):
 
 
 def jn(cpu, registros, ram):
-    pass
+    if registros.flag_N:
+        direccion = int(registros.IR_params(), 2)
+        registros.PC = direccion
+        return True
+
+    return False
 
 
 instr_dict = {
-    0x00: (nop, 0),
+    0x00: (nop, 1),
     0x01: (halt, 1),
     # 0x02: (ret, 0),
     # 0x03: (iret, 0),
@@ -202,10 +250,10 @@ instr_dict = {
     # 0x0B: (store, 3),
     # 0x0C: (xchg, 1),
     # 0x0D: (lea, 3),
-    # 0x0E: (movi, 1),
+    0x0E: (movi, 3),
     # 0x0F: (add, 1),
     # 0x10: (addi, 1),
-    # 0x11: (sub, 1),
+    0x11: (sub, 3),
     # 0x12: (mul, 1),
     # 0x13: (div, 1),
     # 0x14: (inc, 4),
@@ -223,12 +271,12 @@ instr_dict = {
     # 0x20: (ror, 4),
     0x21: (cmp, 3),
     # 0x22: (test, 1),
-    # 0x23: (jmp, 5),
+    0x23: (jmp, 5),
     0x24: (jz, 5),
     # 0x25: (jnz, 5),
     # 0x26: (jc, 5),
     # 0x27: (call, 5),
-    # 0x28: (jn, 5),
+    0x28: (jn, 5),
 }
 
 

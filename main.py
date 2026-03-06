@@ -35,29 +35,11 @@ def main():
     for i, byte in enumerate(instrucciones):
         ram.write(i, byte)
 
-    print(f"\n[+] Lectura 0x0010: {ram.read(16)}")
-    print(f"[+] Bit 0 de 0x0000: {ram.read_bit(0, 0)}")
-    print(f"[+] Bits [0:4] de 0x0000: {ram.read_bits(0, 0, 4)}")
-    print(f"[+] Bloque 0x0000-0x0002 (3 bytes): {ram.read_block(0, 3)}")
-
-    print("\n[+] Mapa de memoria (primeras 2 filas):")
-    ram.display(0, 32)
+    print("\n[+] Mapa de memoria (primeras 6 filas):")
+    ram.display(0, 48)
 
     while cpu.running:
         cpu.step()
-
-    # lines = load_file()
-    #
-    # def fetch():
-    #     for idx,line in enumerate(lines):
-    #         instr = instr_dict[line[0:8]][0] # function
-    #         param_sizes = instr_dict[line[0:8]][0] # function
-    #         instr(line[9:],param_sizes) # exec function
-    #
-    # def binario_a_decimal(binario):
-    #     return int(binario, 2)
-    #
-    # fetch()
 
 
 if __name__ == "__main__":

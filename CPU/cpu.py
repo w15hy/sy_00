@@ -12,7 +12,6 @@ class CPU:
 
     def step(self):
 
-        print(self.ram.read(self.reg.PC))
         # FETCH
         opcode = int(self.ram.read(self.reg.PC), 2)
 
