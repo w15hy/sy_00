@@ -25,7 +25,7 @@ def main():
     ram = RAM(1024)
     cpu = CPU(ram)
 
-    instrucciones = load_instructions("data/instructions.txt")
+    instrucciones = load_instructions("data/test_instructions.txt")
 
     print(
         f"\n[+] {len(instrucciones)} bytes cargados desde instructions.txt: {instrucciones}"

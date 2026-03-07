@@ -73,11 +73,45 @@ def lea(cpu, registros, ram):
 
 
 def add(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    val2 = registros.get_reg(r2)
+
+    result_raw = val1 + val2
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="add")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def addi(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    inm8_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    inm8 = int(inm8_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    result_raw = val1 + inm8
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=inm8, operation="add")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def sub(cpu, registros, ram):
@@ -106,63 +140,307 @@ def sub(cpu, registros, ram):
 
 
 def mul(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    val2 = registros.get_reg(r2)
+
+    result_raw = val1 * val2
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="mul")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def div(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    val2 = registros.get_reg(r2)
+
+    if val2 == 0:
+        # División por cero, quizás set flag o algo, pero por simplicidad, no hacer nada o halt
+        return False
+
+    result_raw = val1 // val2
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="div")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def inc(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+
+    r1 = int(reg1_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    result_raw = val1 + 1
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=1, operation="add")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def dec(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+
+    r1 = int(reg1_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    result_raw = val1 - 1
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=1, operation="sub")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def neg(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+
+    r1 = int(reg1_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    result_raw = -val1
+
+    registros.update_flags(result_raw, operand_a=0, operand_b=val1, operation="sub")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def adc(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    val2 = registros.get_reg(r2)
+    carry = 1 if registros.flag_C else 0
+
+    result_raw = val1 + val2 + carry
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="add")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def sbb(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    val2 = registros.get_reg(r2)
+    borrow = 1 if registros.flag_C else 0
+
+    result_raw = val1 - val2 - borrow
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="sub")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def and_(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    val2 = registros.get_reg(r2)
+
+    result_raw = val1 & val2
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="logic")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def or_(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    val2 = registros.get_reg(r2)
+
+    result_raw = val1 | val2
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="logic")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def xor(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    val2 = registros.get_reg(r2)
+
+    result_raw = val1 ^ val2
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="logic")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def not_(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+
+    r1 = int(reg1_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    result_raw = (~val1) & 0xFF
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=0, operation="logic")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def shl(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+
+    r1 = int(reg1_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    result_raw = (val1 << 1) & 0xFF
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=0, operation="logic")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def rol(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+
+    r1 = int(reg1_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    result_raw = ((val1 << 1) | (val1 >> 7)) & 0xFF
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=0, operation="logic")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def shr(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+
+    r1 = int(reg1_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    result_raw = val1 >> 1
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=0, operation="logic")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def ror(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+
+    r1 = int(reg1_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    result_raw = ((val1 >> 1) | (val1 << 7)) & 0xFF
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=0, operation="logic")
+
+    registros.set_reg(r1, result_raw)
+
+    return False
 
 
 def cmp(cpu, registros, ram):
@@ -188,7 +466,23 @@ def cmp(cpu, registros, ram):
 
 
 def test(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    val2 = registros.get_reg(r2)
+
+    result_raw = val1 & val2
+
+    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="logic")
+
+    return False
 
 
 def jmp(cpu, registros, ram):
@@ -209,7 +503,13 @@ def jz(cpu, registros, ram):
 
 
 def jnz(cpu, registros, ram):
-    pass
+
+    if not registros.flag_Z:
+        direccion = int(registros.IR_params(), 2)
+        registros.PC = direccion
+        return True
+
+    return False
 
 
 def jc(cpu, registros, ram):
@@ -251,30 +551,30 @@ instr_dict = {
     # 0x0C: (xchg, 1),
     # 0x0D: (lea, 3),
     0x0E: (movi, 3),
-    # 0x0F: (add, 1),
-    # 0x10: (addi, 1),
+    0x0F: (add, 3),
+    0x10: (addi, 3),
     0x11: (sub, 3),
-    # 0x12: (mul, 1),
-    # 0x13: (div, 1),
-    # 0x14: (inc, 4),
-    # 0x15: (dec, 4),
-    # 0x16: (neg, 4),
-    # 0x17: (adc, 1),
-    # 0x18: (sbb, 1),
-    # 0x19: (and_, 1),
-    # 0x1A: (or_, 1),
-    # 0x1B: (xor, 1),
-    # 0x1C: (not_, 4),
-    # 0x1D: (shl, 4),
-    # 0x1E: (rol, 4),
-    # 0x1F: (shr, 4),
-    # 0x20: (ror, 4),
+    0x12: (mul, 3),
+    0x13: (div, 3),
+    0x14: (inc, 2),
+    0x15: (dec, 2),
+    0x16: (neg, 2),
+    0x17: (adc, 3),
+    0x18: (sbb, 3),
+    0x19: (and_, 3),
+    0x1A: (or_, 3),
+    0x1B: (xor, 3),
+    0x1C: (not_, 2),
+    0x1D: (shl, 2),
+    0x1E: (rol, 2),
+    0x1F: (shr, 2),
+    0x20: (ror, 2),
     0x21: (cmp, 3),
-    # 0x22: (test, 1),
+    0x22: (test, 3),
     0x23: (jmp, 5),
     0x24: (jz, 5),
-    # 0x25: (jnz, 5),
-    # 0x26: (jc, 5),
+    0x25: (jnz, 5),
+    0x26: (jc, 5),
     # 0x27: (call, 5),
     0x28: (jn, 5),
 }
