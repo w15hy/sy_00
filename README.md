@@ -1,3 +1,1 @@
-# SY_00
-# SY_00
-# SY_00
+Maquina con arquitectura von neumann hecha en python.
