@@ -2,18 +2,6 @@ def nop(cpu, registros, ram):
     pass
 
 
-def mov1(cpu, registros, ram):
-    pass
-
-
-def mov2(cpu, registros, ram):
-    pass
-
-
-def mov3(cpu, registros, ram):
-    pass
-
-
 def movi(cpu, registros, ram):
 
     params = registros.IR_params()
@@ -36,40 +24,204 @@ def halt(cpu, registros, ram):
     cpu.running = False
 
 
+def mov1(cpu, registros, ram):
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val = registros.get_reg(r2)
+
+    registros.set_reg(r1, val)
+
+    return False
+
+
+def mov2(cpu, registros, ram):
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val = registros.get_reg(r2)
+
+    registros.set_reg(r1, val)
+
+    return False
+
+
+def mov3(cpu, registros, ram):
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val = registros.get_reg(r2)
+
+    registros.set_reg(r1, val)
+
+    return False
+
+
 def ret(cpu, registros, ram):
-    pass
+
+    sp = registros.SP
+
+    direccion = ram.read(sp)
+
+    registros.SP += 1
+    registros.PC = direccion
+
+    return True
 
 
 def iret(cpu, registros, ram):
-    pass
+
+    sp = registros.SP
+
+    direccion = ram.read(sp)
+
+    registros.SP += 1
+    registros.PC = direccion
+
+    return True
 
 
 def int_(cpu, registros, ram):
-    pass
+
+    direccion = int(registros.IR_params(), 2)
+
+    sp = registros.SP - 1
+    registros.SP = sp
+
+    ram.write(sp, registros.PC)
+
+    registros.PC = direccion
+
+    return True
 
 
 def push(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg_bin = params[0:8]
+
+    r = int(reg_bin, 2)
+
+    val = registros.get_reg(r)
+
+    sp = registros.SP - 1
+    registros.SP = sp
+
+    ram.write(sp, val)
+
+    return False
 
 
 def pop(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg_bin = params[0:8]
+
+    r = int(reg_bin, 2)
+
+    sp = registros.SP
+
+    val = ram.read(sp)
+
+    registros.SP += 1
+
+    registros.set_reg(r, val)
+
+    return False
 
 
 def load(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    direccion = registros.get_reg(r2)
+
+    val = ram.read(direccion)
+
+    registros.set_reg(r1, val)
+
+    return False
 
 
 def store(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    direccion = registros.get_reg(r2)
+
+    val = registros.get_reg(r1)
+
+    ram.write(direccion, val)
+
+    return False
 
 
 def xchg(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    val1 = registros.get_reg(r1)
+    val2 = registros.get_reg(r2)
+
+    registros.set_reg(r1, val2)
+    registros.set_reg(r2, val1)
+
+    return False
 
 
 def lea(cpu, registros, ram):
-    pass
+
+    params = registros.IR_params()
+
+    reg1_bin = params[0:8]
+    reg2_bin = params[8:16]
+
+    r1 = int(reg1_bin, 2)
+    r2 = int(reg2_bin, 2)
+
+    direccion = registros.get_reg(r2)
+
+    registros.set_reg(r1, direccion)
+
+    return False
 
 
 def add(cpu, registros, ram):
@@ -302,7 +454,9 @@ def and_(cpu, registros, ram):
 
     result_raw = val1 & val2
 
-    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="logic")
+    registros.update_flags(
+        result_raw, operand_a=val1, operand_b=val2, operation="logic"
+    )
 
     registros.set_reg(r1, result_raw)
 
@@ -324,7 +478,9 @@ def or_(cpu, registros, ram):
 
     result_raw = val1 | val2
 
-    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="logic")
+    registros.update_flags(
+        result_raw, operand_a=val1, operand_b=val2, operation="logic"
+    )
 
     registros.set_reg(r1, result_raw)
 
@@ -346,7 +502,9 @@ def xor(cpu, registros, ram):
 
     result_raw = val1 ^ val2
 
-    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="logic")
+    registros.update_flags(
+        result_raw, operand_a=val1, operand_b=val2, operation="logic"
+    )
 
     registros.set_reg(r1, result_raw)
 
@@ -480,7 +638,9 @@ def test(cpu, registros, ram):
 
     result_raw = val1 & val2
 
-    registros.update_flags(result_raw, operand_a=val1, operand_b=val2, operation="logic")
+    registros.update_flags(
+        result_raw, operand_a=val1, operand_b=val2, operation="logic"
+    )
 
     return False
 
@@ -578,8 +738,3 @@ instr_dict = {
     # 0x27: (call, 5),
     0x28: (jn, 5),
 }
-
-
-def r_m(IR):
-    if len(IR) == 24:
-        return (IR[8:16], IR[16:])

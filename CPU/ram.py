@@ -9,6 +9,7 @@ import unittest
 
 class RAMError(Exception):
     """Excepción personalizada para errores de la RAM"""
+
     pass
 
 
@@ -27,17 +28,16 @@ class RAM:
 
     def __init__(self, size: int = 256):
         if size <= 0:
-            raise RAMError(f"El tamaño de la RAM debe ser mayor a 0, se recibió: {size}")
+            raise RAMError(
+                f"El tamaño de la RAM debe ser mayor a 0, se recibió: {size}"
+            )
         self.size = size
         # Memoria inicializada en 0 (cada celda es '00000000')
-        self._memory = ['00000000'] * size
+        self._memory = ["00000000"] * size
 
     # ------------------------------------------------------------------
     # Lectura
     # ------------------------------------------------------------------
-
-
-
 
     def read(self, address: int) -> str:
         """
@@ -67,7 +67,7 @@ class RAM:
         self._validate_address(address)
         self._validate_bit_range(offset, length)
         byte = self._memory[address]
-        return byte[offset: offset + length]
+        return byte[offset : offset + length]
 
     def read_bit(self, address: int, bit_index: int) -> str:
         """
@@ -98,7 +98,7 @@ class RAM:
             raise RAMError("num_bytes debe ser mayor a 0")
         self._validate_address(address)
         self._validate_address(address + num_bytes - 1)
-        return ''.join(self._memory[address: address + num_bytes])
+        return "".join(self._memory[address : address + num_bytes])
 
     # ------------------------------------------------------------------
     # Escritura
@@ -127,12 +127,14 @@ class RAM:
         """
         self._validate_address(address)
         if bit_index < 0 or bit_index >= self.CELL_SIZE:
-            raise RAMError(f"bit_index debe estar entre 0 y {self.CELL_SIZE - 1}, se recibió: {bit_index}")
-        if bit_value not in ('0', '1'):
+            raise RAMError(
+                f"bit_index debe estar entre 0 y {self.CELL_SIZE - 1}, se recibió: {bit_index}"
+            )
+        if bit_value not in ("0", "1"):
             raise RAMError(f"bit_value debe ser '0' o '1', se recibió: '{bit_value}'")
         byte = list(self._memory[address])
         byte[bit_index] = bit_value
-        self._memory[address] = ''.join(byte)
+        self._memory[address] = "".join(byte)
 
     def write_block(self, address: int, binary_string: str):
         """
@@ -144,7 +146,7 @@ class RAM:
             binary_string (str): String binario (múltiplo de 8 bits).
         """
         # Limpiar espacios (compatible con el formato de file.txt)
-        binary_string = binary_string.replace(' ', '')
+        binary_string = binary_string.replace(" ", "")
 
         if len(binary_string) % self.CELL_SIZE != 0:
             raise RAMError(
@@ -157,7 +159,7 @@ class RAM:
         self._validate_address(address + num_bytes - 1)
 
         for i in range(num_bytes):
-            byte = binary_string[i * self.CELL_SIZE: (i + 1) * self.CELL_SIZE]
+            byte = binary_string[i * self.CELL_SIZE : (i + 1) * self.CELL_SIZE]
             self._validate_byte(byte)
             self._memory[address + i] = byte
 
@@ -167,7 +169,7 @@ class RAM:
 
     def clear(self):
         """Reinicia toda la memoria a ceros."""
-        self._memory = ['00000000'] * self.size
+        self._memory = ["00000000"] * self.size
 
     def display(self, start: int = 0, end: int = None, bytes_per_row: int = 8):
         """
@@ -190,9 +192,14 @@ class RAM:
         header_width = 6  # ancho de la columna de dirección
 
         # Encabezado
-        print(f"\n{'RAM - Mapa de Memoria':^{header_width + bytes_per_row * (col_width + 1)}}")
-        print(f"{'Dirección':<{header_width}} | " + ' '.join(f"[+{i}]".center(col_width) for i in range(bytes_per_row)))
-        print('-' * (header_width + 3 + bytes_per_row * (col_width + 1)))
+        print(
+            f"\n{'RAM - Mapa de Memoria':^{header_width + bytes_per_row * (col_width + 1)}}"
+        )
+        print(
+            f"{'Dirección':<{header_width}} | "
+            + " ".join(f"[+{i}]".center(col_width) for i in range(bytes_per_row))
+        )
+        print("-" * (header_width + 3 + bytes_per_row * (col_width + 1)))
 
         row_start = start
         while row_start < end:
@@ -201,9 +208,9 @@ class RAM:
             for addr in range(row_start, row_end):
                 cells.append(self._memory[addr])
             # Rellenar fila incompleta
-            cells += ['        '] * (bytes_per_row - len(cells))
+            cells += ["        "] * (bytes_per_row - len(cells))
             addr_label = f"0x{row_start:04X}"
-            print(f"{addr_label:<{header_width}} | " + ' '.join(cells))
+            print(f"{addr_label:<{header_width}} | " + " ".join(cells))
             row_start += bytes_per_row
 
         print()
@@ -214,7 +221,9 @@ class RAM:
 
     def _validate_address(self, address: int):
         if not isinstance(address, int):
-            raise RAMError(f"La dirección debe ser un entero, se recibió: {type(address)}")
+            raise RAMError(
+                f"La dirección debe ser un entero, se recibió: {type(address)}"
+            )
         if address < 0 or address >= self.size:
             raise RAMError(
                 f"Dirección fuera de rango: {address}. "
@@ -223,14 +232,18 @@ class RAM:
 
     def _validate_byte(self, value: str):
         if not isinstance(value, str):
-            raise RAMError(f"El valor debe ser un string binario, se recibió: {type(value)}")
+            raise RAMError(
+                f"El valor debe ser un string binario, se recibió: {type(value)}"
+            )
         if len(value) != self.CELL_SIZE:
             raise RAMError(
                 f"El byte debe tener exactamente {self.CELL_SIZE} bits, "
                 f"se recibió: '{value}' ({len(value)} bits)"
             )
-        if not all(b in '01' for b in value):
-            raise RAMError(f"El byte solo puede contener '0' y '1', se recibió: '{value}'")
+        if not all(b in "01" for b in value):
+            raise RAMError(
+                f"El byte solo puede contener '0' y '1', se recibió: '{value}'"
+            )
 
     def _validate_bit_range(self, offset: int, length: int):
         if offset < 0 or length <= 0 or offset + length > self.CELL_SIZE:
@@ -250,8 +263,8 @@ class RAM:
 # Pruebas unitarias
 # ==========================================================================
 
-class TestRAM(unittest.TestCase):
 
+class TestRAM(unittest.TestCase):
     def setUp(self):
         """Se ejecuta antes de cada prueba: crea una RAM de 64 bytes."""
         self.ram = RAM(64)
@@ -268,7 +281,7 @@ class TestRAM(unittest.TestCase):
 
     def test_init_all_zeros(self):
         for i in range(len(self.ram)):
-            self.assertEqual(self.ram.read(i), '00000000')
+            self.assertEqual(self.ram.read(i), "00000000")
 
     def test_init_invalid_size(self):
         with self.assertRaises(RAMError):
@@ -279,20 +292,20 @@ class TestRAM(unittest.TestCase):
     # --- Escritura y lectura de byte ---
 
     def test_write_and_read(self):
-        self.ram.write(0, '10110010')
-        self.assertEqual(self.ram.read(0), '10110010')
+        self.ram.write(0, "10110010")
+        self.assertEqual(self.ram.read(0), "10110010")
 
     def test_write_various_addresses(self):
-        data = [('00000001', 10), ('11111111', 31), ('01010101', 63)]
+        data = [("00000001", 10), ("11111111", 31), ("01010101", 63)]
         for val, addr in data:
             self.ram.write(addr, val)
         for val, addr in data:
             self.assertEqual(self.ram.read(addr), val)
 
     def test_overwrite(self):
-        self.ram.write(5, '11111111')
-        self.ram.write(5, '00000000')
-        self.assertEqual(self.ram.read(5), '00000000')
+        self.ram.write(5, "11111111")
+        self.ram.write(5, "00000000")
+        self.assertEqual(self.ram.read(5), "00000000")
 
     # --- Validación de límites ---
 
@@ -304,49 +317,49 @@ class TestRAM(unittest.TestCase):
 
     def test_write_out_of_bounds(self):
         with self.assertRaises(RAMError):
-            self.ram.write(64, '00000000')
+            self.ram.write(64, "00000000")
         with self.assertRaises(RAMError):
-            self.ram.write(-1, '00000000')
+            self.ram.write(-1, "00000000")
 
     def test_write_invalid_byte_length(self):
         with self.assertRaises(RAMError):
-            self.ram.write(0, '1011')      # muy corto
+            self.ram.write(0, "1011")  # muy corto
         with self.assertRaises(RAMError):
-            self.ram.write(0, '101100101') # muy largo
+            self.ram.write(0, "101100101")  # muy largo
 
     def test_write_invalid_byte_chars(self):
         with self.assertRaises(RAMError):
-            self.ram.write(0, '1011X010')
+            self.ram.write(0, "1011X010")
 
     # --- Escritura y lectura por bit ---
 
     def test_write_bit(self):
-        self.ram.write(0, '00000000')
-        self.ram.write_bit(0, 3, '1')
-        self.assertEqual(self.ram.read(0), '00010000')
+        self.ram.write(0, "00000000")
+        self.ram.write_bit(0, 3, "1")
+        self.assertEqual(self.ram.read(0), "00010000")
 
     def test_read_bit(self):
-        self.ram.write(0, '10110010')
-        self.assertEqual(self.ram.read_bit(0, 0), '1')
-        self.assertEqual(self.ram.read_bit(0, 1), '0')
-        self.assertEqual(self.ram.read_bit(0, 7), '0')
+        self.ram.write(0, "10110010")
+        self.assertEqual(self.ram.read_bit(0, 0), "1")
+        self.assertEqual(self.ram.read_bit(0, 1), "0")
+        self.assertEqual(self.ram.read_bit(0, 7), "0")
 
     def test_write_bit_invalid_index(self):
         with self.assertRaises(RAMError):
-            self.ram.write_bit(0, 8, '1')
+            self.ram.write_bit(0, 8, "1")
         with self.assertRaises(RAMError):
-            self.ram.write_bit(0, -1, '1')
+            self.ram.write_bit(0, -1, "1")
 
     def test_write_bit_invalid_value(self):
         with self.assertRaises(RAMError):
-            self.ram.write_bit(0, 0, '2')
+            self.ram.write_bit(0, 0, "2")
 
     # --- Lectura de bits parciales ---
 
     def test_read_bits(self):
-        self.ram.write(0, '10110010')
-        self.assertEqual(self.ram.read_bits(0, 0, 4), '1011')
-        self.assertEqual(self.ram.read_bits(0, 4, 4), '0010')
+        self.ram.write(0, "10110010")
+        self.assertEqual(self.ram.read_bits(0, 0, 4), "1011")
+        self.assertEqual(self.ram.read_bits(0, 4, 4), "0010")
 
     def test_read_bits_invalid_range(self):
         with self.assertRaises(RAMError):
@@ -356,48 +369,48 @@ class TestRAM(unittest.TestCase):
 
     def test_write_and_read_block(self):
         # Simula cargar una instrucción: opcode (8 bits) + parámetro (8 bits)
-        self.ram.write_block(0, '0000010110100011')
-        self.assertEqual(self.ram.read(0), '00000101')
-        self.assertEqual(self.ram.read(1), '10100011')
+        self.ram.write_block(0, "0000010110100011")
+        self.assertEqual(self.ram.read(0), "00000101")
+        self.assertEqual(self.ram.read(1), "10100011")
 
     def test_write_block_with_spaces(self):
-        self.ram.write_block(0, '0000 0101 1010 0011')
-        self.assertEqual(self.ram.read(0), '00000101')
-        self.assertEqual(self.ram.read(1), '10100011')
+        self.ram.write_block(0, "0000 0101 1010 0011")
+        self.assertEqual(self.ram.read(0), "00000101")
+        self.assertEqual(self.ram.read(1), "10100011")
 
     def test_read_block(self):
-        self.ram.write(10, '11001100')
-        self.ram.write(11, '00110011')
-        self.assertEqual(self.ram.read_block(10, 2), '1100110000110011')
+        self.ram.write(10, "11001100")
+        self.ram.write(11, "00110011")
+        self.assertEqual(self.ram.read_block(10, 2), "1100110000110011")
 
     def test_write_block_invalid_length(self):
         with self.assertRaises(RAMError):
-            self.ram.write_block(0, '10110')  # no múltiplo de 8
+            self.ram.write_block(0, "10110")  # no múltiplo de 8
 
     def test_write_block_out_of_bounds(self):
         with self.assertRaises(RAMError):
-            self.ram.write_block(60, '00000000' * 8)  # excede tamaño
+            self.ram.write_block(60, "00000000" * 8)  # excede tamaño
 
     # --- Clear ---
 
     def test_clear(self):
-        self.ram.write(0, '11111111')
-        self.ram.write(10, '10101010')
+        self.ram.write(0, "11111111")
+        self.ram.write(10, "10101010")
         self.ram.clear()
-        self.assertEqual(self.ram.read(0), '00000000')
-        self.assertEqual(self.ram.read(10), '00000000')
+        self.assertEqual(self.ram.read(0), "00000000")
+        self.assertEqual(self.ram.read(10), "00000000")
 
     # --- repr ---
 
     def test_repr(self):
-        self.assertIn('64', repr(self.ram))
+        self.assertIn("64", repr(self.ram))
 
 
 # ==========================================================================
 # Demo rápida
 # ==========================================================================
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     print("=" * 60)
     print("  DEMO - Módulo RAM")
     print("=" * 60)
@@ -416,16 +429,18 @@ if __name__ == '__main__':
             list[str]: Lista de strings binarios de 8 bits.
         """
         instrucciones = []
-        with open(filepath, 'r') as f:
+        with open(filepath, "r") as f:
             for linea in f:
                 linea = linea.strip()
-                if not linea or linea.startswith('#'):  # ignorar vacías y comentarios
+                if not linea or linea.startswith("#"):  # ignorar vacías y comentarios
                     continue
                 instrucciones.append(linea)
         return instrucciones
 
-    instrucciones = load_instructions('data/instructions.txt')
-    print(f"\n[+] {len(instrucciones)} bytes cargados desde instructions.txt: {instrucciones}")
+    instrucciones = load_instructions("data/instructions.txt")
+    print(
+        f"\n[+] {len(instrucciones)} bytes cargados desde instructions.txt: {instrucciones}"
+    )
 
     print("[+] Cargando instrucciones en RAM desde dirección 0x0000...")
     for i, byte in enumerate(instrucciones):
@@ -442,4 +457,4 @@ if __name__ == '__main__':
     print("\n" + "=" * 60)
     print("  EJECUTANDO PRUEBAS UNITARIAS")
     print("=" * 60)
-    unittest.main(argv=[''], verbosity=2, exit=False)
+    unittest.main(argv=[""], verbosity=2, exit=False)
