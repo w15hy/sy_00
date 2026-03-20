@@ -738,3 +738,104 @@ instr_dict = {
     # 0x27: (call, 5),
     0x28: (jn, 5),
 }
+
+
+def decode_instruction(ir_binary: str, registros) -> str:
+    """
+    Decodifica una instrucción completa a formato assembly legible.
+    
+    Args:
+        ir_binary (str): La instrucción en formato binario (ej: "00001110000000000011000")
+        registros: Objeto de registros (para acceder a IR_params)
+    
+    Returns:
+        str: La instrucción formateada (ej: "MOVI R0 48", "ADD R1 R2", "NOP")
+    """
+    # Extraer opcode (primeros 8 bits)
+    opcode = int(ir_binary[:8], 2)
+    instr_name = opcode_names.get(opcode, "UNKNOWN")
+    
+    # Instrucciones sin parámetros
+    if opcode in [0x00, 0x01]:  # NOP, HALT
+        return instr_name
+    
+    # Obtener los parámetros (todo después del opcode)
+    if len(ir_binary) > 8:
+        params = ir_binary[8:]
+    else:
+        return instr_name
+    
+    # Instrucciones con 2 registros (ADD, SUB, MUL, DIV, CMP, TEST, AND, OR, XOR, etc.)
+    if opcode in [0x0F, 0x11, 0x12, 0x13, 0x19, 0x1A, 0x1B, 0x21, 0x22]:
+        # params[0:8] = R1, params[8:16] = R2
+        if len(params) >= 16:
+            r1 = int(params[0:8], 2)
+            r2 = int(params[8:16], 2)
+            return f"{instr_name} R{r1} R{r2}"
+    
+    # Instrucciones con 1 registro + inmediato 8 bits (MOVI, ADDI)
+    if opcode in [0x0E, 0x10]:
+        if len(params) >= 16:
+            r1 = int(params[0:8], 2)
+            imm8 = int(params[8:16], 2)
+            return f"{instr_name} R{r1} {imm8}"
+    
+    # Instrucciones de 1 registro (INC, DEC, NEG, NOT, SHL, SHR, ROL, ROR)
+    if opcode in [0x14, 0x15, 0x16, 0x1C, 0x1D, 0x1E, 0x1F, 0x20]:
+        if len(params) >= 8:
+            r1 = int(params[0:8], 2)
+            return f"{instr_name} R{r1}"
+    
+    # Instrucciones de salto (JMP, JZ, JNZ, JC, JN) con dirección de 32 bits
+    if opcode in [0x23, 0x24, 0x25, 0x26, 0x28]:
+        if len(params) >= 32:
+            address = int(params[0:32], 2)
+            return f"{instr_name} 0x{address:08X}"
+    
+    # Por defecto
+    return instr_name
+
+# Diccionario que mapea opcodes a nombres de instrucciones (assembly)
+opcode_names = {
+    0x00: "NOP",
+    0x01: "HALT",
+    0x0E: "MOVI",
+    0x0F: "ADD",
+    0x10: "ADDI",
+    0x11: "SUB",
+    0x12: "MUL",
+    0x13: "DIV",
+    0x14: "INC",
+    0x15: "DEC",
+    0x16: "NEG",
+    0x17: "ADC",
+    0x18: "SBB",
+    0x19: "AND",
+    0x1A: "OR",
+    0x1B: "XOR",
+    0x1C: "NOT",
+    0x1D: "SHL",
+    0x1E: "ROL",
+    0x1F: "SHR",
+    0x20: "ROR",
+    0x21: "CMP",
+    0x22: "TEST",
+    0x23: "JMP",
+    0x24: "JZ",
+    0x25: "JNZ",
+    0x26: "JC",
+    0x28: "JN",
+}
+
+
+def get_instruction_name(opcode: int) -> str:
+    """
+    Retorna el nombre de la instrucción para un opcode dado.
+    
+    Args:
+        opcode (int): El opcode (0-255)
+    
+    Returns:
+        str: El nombre de la instrucción (ej: "MOVI", "ADD", etc.)
+    """
+    return opcode_names.get(opcode, "UNKNOWN")
