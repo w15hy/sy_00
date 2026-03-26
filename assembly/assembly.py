@@ -54,7 +54,6 @@ instr_dict = {
 }
 
 # pre(4) → opcode_bits
-# Estos son los prefijos reales en binario y cuántos bits tiene el opcode
 pre_instr = {
     1: {"pre": "0001", "opcode_bits": 10},  # F1: reg/inm
     2: {"pre": "0010", "opcode_bits": 8},   # F2: memoria
@@ -64,16 +63,79 @@ pre_instr = {
 
 # Modos F1
 MODOS_F1 = {
-    "registro":                    0,
-    "registro - inmediato":        1,
-    "registro - registro":         2,
+    "registro":                               0,
+    "registro - inmediato":                   1,
+    "registro - registro":                    2,
     "registro - registro - inmediato":        3,
     "registro - registro - registro":         4,
     "registro - registro - registro - inmediato": 5,
 }
 
 def zfill_bin(num, bits):
-    return bin(num)[2:].zfill(bits)
+    # Maneja números negativos con complemento a dos truncado al ancho indicado
+    if num < 0:
+        num = num & ((1 << bits) - 1)
+    return bin(num)[2:].zfill(bits)[-bits:]
+
+
+# ---------------------------------------------------------------------------
+# PASADA 1: construir tabla de símbolos
+# ---------------------------------------------------------------------------
+
+def primera_pasada(lineas):
+    """
+    Recorre las líneas y asigna a cada etiqueta su dirección en bytes.
+    Cada instrucción ocupa 8 bytes (64 bits).
+    Retorna un dict { "loop": 8, "fin": 40, ... }
+    """
+    tabla = {}
+    direccion = 0  # en bytes
+
+    for linea in lineas:
+        linea_limpia = linea.strip()
+
+        # Ignorar comentarios y líneas vacías
+        if not linea_limpia or linea_limpia.startswith("#"):
+            continue
+
+        # Eliminar comentario inline
+        if "#" in linea_limpia:
+            linea_limpia = linea_limpia[:linea_limpia.index("#")].strip()
+        if not linea_limpia:
+            continue
+
+        # Etiqueta sola en su propia línea:  "loop:"
+        if linea_limpia.endswith(":") and " " not in linea_limpia:
+            nombre = linea_limpia[:-1]
+            if nombre in tabla:
+                print(f"  advertencia: etiqueta '{nombre}' definida más de una vez")
+            tabla[nombre] = direccion
+            continue
+
+        # Etiqueta + instrucción en la misma línea:  "fin: halt"
+        if ":" in linea_limpia:
+            partes = linea_limpia.split(":", 1)
+            nombre = partes[0].strip()
+            # Solo registrar como etiqueta si el lado izquierdo parece un
+            # identificador (no un número hexadecimal tipo 0x1A:...)
+            if re.match(r'^[A-Za-z_]\w*$', nombre):
+                if nombre in tabla:
+                    print(f"  advertencia: etiqueta '{nombre}' definida más de una vez")
+                tabla[nombre] = direccion
+            resto = partes[1].strip()
+            if resto and not resto.startswith("#"):
+                direccion += 8   # la instrucción de esa línea cuenta
+            continue
+
+        # Línea de instrucción normal
+        direccion += 8
+
+    return tabla
+
+
+# ---------------------------------------------------------------------------
+# Encoders
+# ---------------------------------------------------------------------------
 
 def encode_f1(opcode, keywords):
     """
@@ -86,7 +148,7 @@ def encode_f1(opcode, keywords):
     rd = r1 = r2 = 0
     inm        = 0
 
-    regs = []
+    regs    = []
     inm_val = None
 
     for kw in keywords:
@@ -94,32 +156,23 @@ def encode_f1(opcode, keywords):
         if kl.startswith("r") and kl[1:].isdigit() and int(kl[1:]) <= 15:
             regs.append(int(kl[1:]))
         else:
-            inm_val = int(kw, 0)  # acepta 0x... o decimal
+            inm_val = int(kw, 0)
 
-    n_regs = len(regs)
+    n_regs  = len(regs)
     has_inm = inm_val is not None
 
     if n_regs == 1 and not has_inm:
-        modo = 0          # registro
-        rd   = regs[0]
+        modo = 0; rd = regs[0]
     elif n_regs == 1 and has_inm:
-        modo = 1          # registro - inmediato
-        rd   = regs[0]
-        inm  = inm_val
+        modo = 1; rd = regs[0]; inm = inm_val
     elif n_regs == 2 and not has_inm:
-        modo = 2          # registro - registro
-        rd, r1 = regs[0], regs[1]
+        modo = 2; rd, r1 = regs[0], regs[1]
     elif n_regs == 2 and has_inm:
-        modo = 3          # registro - registro - inmediato
-        rd, r1 = regs[0], regs[1]
-        inm  = inm_val
+        modo = 3; rd, r1 = regs[0], regs[1]; inm = inm_val
     elif n_regs == 3 and not has_inm:
-        modo = 4          # registro - registro - registro
-        rd, r1, r2 = regs[0], regs[1], regs[2]
+        modo = 4; rd, r1, r2 = regs[0], regs[1], regs[2]
     elif n_regs == 3 and has_inm:
-        modo = 5          # registro - registro - registro - inmediato
-        rd, r1, r2 = regs[0], regs[1], regs[2]
-        inm  = inm_val
+        modo = 5; rd, r1, r2 = regs[0], regs[1], regs[2]; inm = inm_val
 
     bits = (
         pre
@@ -133,6 +186,7 @@ def encode_f1(opcode, keywords):
     assert len(bits) == 64, f"F1 debe ser 64 bits, got {len(bits)}"
     return bits
 
+
 def encode_f2(opcode, keywords):
     """
     [ pre(4) ][ opcode(8) ][ modo(6) ][ r1(4) ][ base(4) ][ index(4) ][ scale(2) ][ offset(32) ]
@@ -145,11 +199,7 @@ def encode_f2(opcode, keywords):
     scale = 0
     offset = 0
 
-    # Sintaxis esperada:
-    #   load  rd, base, index, scale, offset
-    #   store r1, base, index, scale, offset
-    # (los campos que falten quedan en 0)
-    regs = []
+    regs     = []
     literals = []
     for kw in keywords:
         kl = kw.lower()
@@ -164,10 +214,6 @@ def encode_f2(opcode, keywords):
     if len(literals) > 0: scale  = literals[0]
     if len(literals) > 1: offset = literals[1]
 
-    # modo 0 = reg→mem (store), modo 1 = mem→reg (load/lea)
-    # El assembler lo decide por la instrucción: load/lea = 1, store = 0
-    # Aquí lo dejamos en 0; quien llama puede ajustarlo si hace falta.
-
     bits = (
         pre
         + opcode_bin
@@ -181,10 +227,15 @@ def encode_f2(opcode, keywords):
     assert len(bits) == 64, f"F2 debe ser 64 bits, got {len(bits)}"
     return bits
 
-def encode_f3(opcode, keywords):
+
+def encode_f3(opcode, keywords, tabla_simbolos=None, dir_actual=0):
     """
     [ pre(4) ][ opcode(10) ][ modo(6) ][ r1(4) ][ r2(4) ][ offset(32) ][ flags(4) ]
     = 64 bits
+
+    Resolución de etiquetas:
+      - jmpr/jzr/jnzr/jcr/jnr (opcodes 5-9) → salto relativo  (offset = destino - dir_actual)
+      - resto                                 → salto absoluto  (offset = dir_destino)
     """
     pre        = pre_instr[3]["pre"]
     opcode_bin = zfill_bin(opcode, 10)
@@ -193,26 +244,35 @@ def encode_f3(opcode, keywords):
     offset     = 0
     flags      = 0
 
-    regs = []
+    regs     = []
     literals = []
+
     for kw in keywords:
         kl = kw.lower()
         if kl.startswith("r") and kl[1:].isdigit() and int(kl[1:]) <= 15:
             regs.append(int(kl[1:]))
+        elif tabla_simbolos and kw in tabla_simbolos:
+            # ── Resolución de etiqueta ──────────────────────────────
+            dir_destino = tabla_simbolos[kw]
+            if opcode in range(5, 10):          # saltos relativos
+                offset = dir_destino - dir_actual
+                modo   = 2
+            else:                               # saltos absolutos
+                offset = dir_destino
+                modo   = 0
         else:
-            literals.append(int(kw, 0))
+            try:
+                literals.append(int(kw, 0))
+            except ValueError:
+                print(f"  advertencia: símbolo '{kw}' no encontrado en tabla de símbolos")
 
     if len(regs) > 0: r1 = regs[0]
     if len(regs) > 1: r2 = regs[1]
-    if len(literals) > 0: offset = literals[0]
+    if literals:      offset = literals[0]
 
-    # Inferir modo a partir del opcode original:
-    # jmpr/jzr/jnzr/jcr/jnr (opcodes 5-9) → modo por registro (2)
-    # el resto → absoluto (0)
-    if opcode in range(5, 10):
+    # Si no se resolvió por etiqueta, inferir modo por opcode
+    if modo == 0 and opcode in range(5, 10):
         modo = 2
-    else:
-        modo = 0
 
     bits = (
         pre
@@ -226,6 +286,7 @@ def encode_f3(opcode, keywords):
     assert len(bits) == 64, f"F3 debe ser 64 bits, got {len(bits)}"
     return bits
 
+
 def encode_f4(opcode, keywords):
     """
     [ pre(4) ][ opcode(6) ][ modo(6) ][ inm32(32) ][ padding(16) ]
@@ -236,28 +297,57 @@ def encode_f4(opcode, keywords):
     modo       = 0
     inm32      = 0
 
-    literals = []
     for kw in keywords:
         kl = kw.lower()
         if not (kl.startswith("r") and kl[1:].isdigit()):
-            literals.append(int(kw, 0))
-
-    if len(literals) > 0:
-        inm32 = literals[0]
-        modo  = 1
+            inm32 = int(kw, 0)
+            modo  = 1
 
     bits = (
         pre
         + opcode_bin
-        + zfill_bin(modo,    6)
-        + zfill_bin(inm32,  32)
-        + zfill_bin(0,      16)   # padding
+        + zfill_bin(modo,   6)
+        + zfill_bin(inm32, 32)
+        + zfill_bin(0,     16)   # padding
     )
     assert len(bits) == 64, f"F4 debe ser 64 bits, got {len(bits)}"
     return bits
 
+
 ENCODERS = {1: encode_f1, 2: encode_f2, 3: encode_f3, 4: encode_f4}
 
+
+# ---------------------------------------------------------------------------
+# Utilidad: normalizar una línea (quitar comentario inline y etiqueta)
+# ---------------------------------------------------------------------------
+
+def limpiar_linea(linea):
+    """
+    Devuelve (instruccion_str | None).
+    Elimina comentarios inline, etiquetas y líneas vacías.
+    """
+    s = linea.strip()
+    if not s or s.startswith("#"):
+        return None
+    # Eliminar comentario inline
+    if "#" in s:
+        s = s[:s.index("#")].strip()
+    if not s:
+        return None
+    # Etiqueta sola
+    if s.endswith(":") and " " not in s:
+        return None
+    # Etiqueta + instrucción → quedarse solo con la instrucción
+    if ":" in s:
+        partes = s.split(":", 1)
+        if re.match(r'^[A-Za-z_]\w*$', partes[0].strip()):
+            s = partes[1].strip()
+    return s if s else None
+
+
+# ---------------------------------------------------------------------------
+# main
+# ---------------------------------------------------------------------------
 
 def main():
     if len(sys.argv) < 2:
@@ -267,14 +357,18 @@ def main():
         print("  archivo_asm   : Archivo con instrucciones (una por línea)")
         print("  archivo_salida: Archivo para guardar bytecode (opcional)")
         print()
+        print("Formato de etiquetas:")
+        print("  loop:          # etiqueta en su propia línea")
+        print("  fin: halt      # etiqueta + instrucción en la misma línea")
+        print()
         print("Ejemplo:")
         print("  python assembly.py programa.asm")
         print("  python assembly.py programa.asm programa.bin")
         sys.exit(1)
-    
-    input_file = sys.argv[1]
+
+    input_file  = sys.argv[1]
     output_file = sys.argv[2] if len(sys.argv) > 2 else None
-    
+
     try:
         with open(input_file, 'r') as f:
             lineas = f.readlines()
@@ -284,14 +378,26 @@ def main():
     except Exception as e:
         print(f"error al leer '{input_file}': {e}")
         sys.exit(1)
-    
-    # Procesar instrucciones
+
+    # ── PASADA 1: tabla de símbolos ─────────────────────────────────────────
+    tabla_simbolos = primera_pasada(lineas)
+
+    if tabla_simbolos:
+        print("Tabla de símbolos:")
+        for nombre, dir_ in tabla_simbolos.items():
+            print(f"  {nombre:20} → 0x{dir_:04X}  ({dir_} bytes)")
+        print()
+
+    # ── PASADA 2: ensamblado ────────────────────────────────────────────────
     resultados = []
+    direccion  = 0
+
     for num_linea, linea in enumerate(lineas, 1):
-        if linea.startswith("#") or linea.strip() == "":
+        instr_str = limpiar_linea(linea)
+        if instr_str is None:
             continue
 
-        partes   = re.split(r"[ ,]+", linea.strip())
+        partes   = re.split(r"[ ,]+", instr_str)
         instr    = partes[0].lower()
         keywords = [p for p in partes[1:] if p]
 
@@ -303,21 +409,27 @@ def main():
         formato = info["formato"]
         opcode  = info["opcode"]
 
-        encoder = ENCODERS[formato]
-        bits    = encoder(opcode, keywords)
+        try:
+            if formato == 3:
+                bits = encode_f3(opcode, keywords,
+                                 tabla_simbolos=tabla_simbolos,
+                                 dir_actual=direccion)
+            else:
+                bits = ENCODERS[formato](opcode, keywords)
+        except Exception as e:
+            print(f"[Línea {num_linea}] error al codificar '{instr_str}': {e}")
+            continue
 
-        resultado = f"{instr:6}  {bits}"
-        resultados.append(resultado)
+        resultado = f"0x{direccion:04X}  {instr:6}  {bits}"
+        resultados.append((direccion, bits, resultado))
         print(resultado)
-    
-    # Guardar en archivo si se especificó
+        direccion += 8
+
+    # ── Guardar en archivo ──────────────────────────────────────────────────
     if output_file:
         try:
             with open(output_file, 'w') as f:
-                for resultado in resultados:
-                    # Extraer solo los bits (después del nombre de instrucción)
-                    bits = resultado.split()[-1]
-                    # Escribir byte por byte (8 bits por línea)
+                for _, bits, _ in resultados:
                     for i in range(0, len(bits), 8):
                         f.write(bits[i:i+8] + '\n')
             print(f"\n✓ Bytecode guardado en '{output_file}'")

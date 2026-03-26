@@ -42,10 +42,10 @@ def main():
     ram = RAM(6048)
     cpu = CPU(ram)
 
-    instrucciones = load_instructions("data/ejemplobin.txt")
+    instrucciones = load_instructions("data/fibobin.txt")
 
     print(
-        f"\n[+] {len(instrucciones)} bytes cargados desde euclides.txt: {instrucciones}"
+        f"\n[+] {len(instrucciones)} bytes cargados desde fibobin.txt: {instrucciones}"
     )
 
     print("[+] Cargando instrucciones en RAM desde dirección 0x0000...")

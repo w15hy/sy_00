@@ -1,46 +1,16 @@
-# movi Rn, Inm8
-00001110
-00000000
-00000000
+# Factorial de n
+# Entrada : r0 = n  (ej: 5)
+# Resultado: r5
+# Registros : r0 = contador, r5 = acumulador
 
-# movi Rn, Inm8 (ejemplo N=4)
-00001110
-00000001
-00000100
-
-# movi Rn, Inm8
-00001110
-00000010
-00000001
-
-# while: cmp r1,r0
-00100001
-00000001
-00000000
-
-# jz END
-00100100
-00000000
-00000000
-00000000
-00011011
-
-# mul r2,r1
-00010010
-00000010
-00000001
-
-# dec r1
-00010101
-00000001
-
-# jmp while
-00100011
-00000000
-00000000
-00000000
-00001001
-
-# END:
-# halt
-00000001
+mov  r0, 5          # n = 5  → calcula 5!
+mov  r5, 1          # acumulador = 1
+mov  r2, 1
+LOOP:   
+cmp  r0, r2          # compara contador con 1
+jz   END            # si r0 == 1  →  terminamos (r5 ya tiene el resultado)
+mul  r5, r0     # r5 = r5 * r0
+dec  r0             # r0--
+jmp  LOOP
+END:    
+halt
