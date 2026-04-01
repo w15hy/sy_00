@@ -7,9 +7,9 @@ Novedad v2:
   • Instrucción  iret (F4 opcode 4)
 """
 
+import os
 import re
 import sys
-import os
 
 # ---------------------------------------------------------------------------
 # Tabla de instrucciones
@@ -43,6 +43,8 @@ instr_dict = {
     "ror":  {"opcode": 22, "formato": 1},
     "cmp":  {"opcode": 23, "formato": 1},
     "test": {"opcode": 24, "formato": 1},
+    "mod": {"opcode":  25, "formato": 1},
+    "modi": {"opcode": 26, "formato": 1},
 
     # ===== FORMATO 2  pre=0010  opcode=8 bits =====
     "load":  {"opcode": 0, "formato": 2},
@@ -61,6 +63,9 @@ instr_dict = {
     "jcr":  {"opcode": 8,  "formato": 3},
     "jnr":  {"opcode": 9,  "formato": 3},
     "call": {"opcode": 10, "formato": 3},
+    "jg":   {"opcode": 11, "formato": 3},
+    "jge":  {"opcode": 12, "formato": 3},
+    "jne":  {"opcode": 13, "formato": 3},
 
     # ===== FORMATO 4  pre=0000  opcode=6 bits =====
     "nop":  {"opcode": 0, "formato": 4},
@@ -68,6 +73,19 @@ instr_dict = {
     "inti": {"opcode": 2, "formato": 4},
     "ret":  {"opcode": 3, "formato": 4},   # ← NUEVO
     "iret": {"opcode": 4, "formato": 4},   # ← NUEVO
+
+    # ===== FORMATO 5  pre=0100  opcode=10 bits  FPU =====
+    "fmov":  {"opcode": 0,  "formato": 5},
+    "fadd":  {"opcode": 1,  "formato": 5},
+    "fsub":  {"opcode": 2,  "formato": 5},
+    "fmul":  {"opcode": 3,  "formato": 5},
+    "fdiv":  {"opcode": 4,  "formato": 5},
+    "fcmp":  {"opcode": 5,  "formato": 5},
+    "fabs":  {"opcode": 6,  "formato": 5},
+    "fneg":  {"opcode": 7,  "formato": 5},
+    "fsqrt": {"opcode": 8,  "formato": 5},
+    "fi2f":  {"opcode": 9,  "formato": 5},
+    "ff2i":  {"opcode": 10, "formato": 5},
 }
 
 # pre(4) → opcode_bits
@@ -76,6 +94,7 @@ pre_instr = {
     2: {"pre": "0010", "opcode_bits": 8},   # F2: memoria
     3: {"pre": "0011", "opcode_bits": 10},  # F3: saltos
     4: {"pre": "0000", "opcode_bits": 6},   # F4: control
+    5: {"pre": "0100", "opcode_bits": 10},  # F5: FPU
 }
 
 # Modos F1
@@ -368,7 +387,59 @@ def encode_f4(opcode, keywords):
     return bits
 
 
-ENCODERS = {1: encode_f1, 2: encode_f2, 3: encode_f3, 4: encode_f4}
+def encode_f5(opcode, keywords):
+    """
+    F5 — FPU  (mismo layout que F1)
+    [ pre(4) ][ opcode(10) ][ modo(6) ][ rd(4) ][ r1(4) ][ r2(4) ][ inm(32) ]
+    = 64 bits
+
+    El inmediato puede ser:
+      • float literal  (3.14, -2.5, 100.0) → se convierte a bits IEEE 754 de 32 bits
+      • int literal    (0xFF, 42)           → se usa directamente (raw bits)
+    """
+    import struct as _struct
+    pre        = pre_instr[5]["pre"]
+    opcode_bin = zfill_bin(opcode, 10)
+    modo = rd = r1 = r2 = 0
+    inm_val = None
+    regs = []
+
+    for kw in keywords:
+        kl = kw.lower()
+        if kl.startswith("r") and kl[1:].isdigit() and int(kl[1:]) <= 15:
+            regs.append(int(kl[1:]))
+        else:
+            # Float si tiene '.' o 'e' y no empieza con 0x
+            is_float = ('.' in kw or 'e' in kw.lower()) and not kw.lower().startswith('0x')
+            if is_float:
+                f = float(kw)
+                inm_val = _struct.unpack('>I', _struct.pack('>f', f))[0]
+            else:
+                inm_val = int(kw, 0)
+
+    n_regs  = len(regs)
+    has_inm = inm_val is not None
+    inm     = inm_val if has_inm else 0
+
+    if   n_regs == 1 and not has_inm: modo = 0; rd = regs[0]
+    elif n_regs == 1 and     has_inm: modo = 1; rd = regs[0]
+    elif n_regs == 2 and not has_inm: modo = 2; rd, r1 = regs[0], regs[1]
+    elif n_regs == 2 and     has_inm: modo = 3; rd, r1 = regs[0], regs[1]
+
+    bits = (
+        pre
+        + opcode_bin
+        + zfill_bin(modo, 6)
+        + zfill_bin(rd,   4)
+        + zfill_bin(r1,   4)
+        + zfill_bin(r2,   4)
+        + zfill_bin(inm, 32)
+    )
+    assert len(bits) == 64, f"F5 debe ser 64 bits, got {len(bits)}"
+    return bits
+
+
+ENCODERS = {1: encode_f1, 2: encode_f2, 3: encode_f3, 4: encode_f4, 5: encode_f5}
 
 
 # ---------------------------------------------------------------------------

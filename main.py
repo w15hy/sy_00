@@ -42,7 +42,7 @@ def main():
     ram = RAM(6048)
     cpu = CPU(ram)
 
-    instrucciones = load_instructions("data/test_vectores.bin")
+    instrucciones = load_instructions("data/brun.bin")
 
     print(
         f"\n[+] {len(instrucciones)} bytes cargados desde test_vectores.bin: {instrucciones}"

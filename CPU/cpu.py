@@ -1,9 +1,9 @@
 import time
 
+from CPU.buses import BusInterface
 from CPU.instructions import decode, params_format_1
 from CPU.ram import RAM
 from CPU.registers import Registers
-from CPU.buses import BusInterface
 
 # pre(4 bits) → cuántos bits tiene el opcode
 _PRE_OPCODE_BITS = {
@@ -31,18 +31,18 @@ class CPU:
         # FETCH — siempre 64 bits (8 bytes) usando BUSES EXPLÍCITOS
         # 1️⃣ Coloca PC en AddressBus
         self.buses.address_bus.set_address(self.reg.PC)
-        
+
         # 2️⃣ Activa READ en ControlBus
         self.buses.control_bus.set_read(True)
         self.buses.control_bus.set_enable(True)
-        
+
         # 3️⃣ Lee 8 bytes de memoria a través del DataBus
         instr = self.ram.read_block(self.reg.PC, 8)
         self.buses.data_bus.write_data(int(instr, 2))  # Dato ahora está en DataBus
-        
+
         # 4️⃣ Desactiva READ (ciclo de lectura completo)
         self.buses.control_bus.set_read(False)
-        
+
         # Carga en IR
         self.reg.IR = instr
 
@@ -66,7 +66,7 @@ class CPU:
     def read_memory_via_bus(self, address: int, num_bytes: int = 8) -> str:
         """
         Lee datos de memoria usando BUSES explícitos.
-        
+
         Ciclo de lectura:
         1. Coloca dirección en AddressBus
         2. Activa READ en ControlBus
@@ -74,26 +74,26 @@ class CPU:
         """
         # 1️⃣ Poner dirección en AddressBus
         self.buses.address_bus.set_address(address)
-        
+
         # 2️⃣ Activar READ en ControlBus
         self.buses.control_bus.set_read(True)
         self.buses.control_bus.set_enable(True)
-        
+
         # 3️⃣ Leer de RAM
         data = self.ram.read_block(address, num_bytes)
-        
+
         # 4️⃣ Poner dato en DataBus
         self.buses.data_bus.write_data(int(data, 2))
-        
+
         # 5️⃣ Desactivar READ
         self.buses.control_bus.set_read(False)
-        
+
         return data
 
     def write_memory_via_bus(self, address: int, data: str) -> None:
         """
         Escribe datos en memoria usando BUSES explícitos.
-        
+
         Ciclo de escritura:
         1. Coloca dirección en AddressBus
         2. Coloca datos en DataBus
@@ -101,17 +101,17 @@ class CPU:
         """
         # 1️⃣ Poner dirección en AddressBus
         self.buses.address_bus.set_address(address)
-        
+
         # 2️⃣ Poner dato en DataBus
         self.buses.data_bus.write_data(int(data, 2))
-        
+
         # 3️⃣ Activar WRITE en ControlBus
         self.buses.control_bus.set_write(True)
         self.buses.control_bus.set_enable(True)
-        
+
         # 4️⃣ Escribir en RAM
         self.ram.write(address, data)
-        
+
         # 5️⃣ Desactivar WRITE
         self.buses.control_bus.set_write(False)
 
